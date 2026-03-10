@@ -43,7 +43,6 @@ LAST_PREDICTED_ISSUE = ""
 LAST_PREDICTED_RESULT = ""
 
 # --- Streak & Stats Tracking ---
-# (Host Restart လုပ်တိုင်း 0 မှ ပြန်စမည်)
 CURRENT_WIN_STREAK = 0
 CURRENT_LOSE_STREAK = 0
 LONGEST_WIN_STREAK = 0
@@ -75,17 +74,18 @@ async def login_and_get_token(session: aiohttp.ClientSession):
     print("🔐 အကောင့်ထဲသို့ Login ဝင်နေပါသည်...")
     
     json_data = {
-        'username': '959770069402',
+        'username': '959680090540',
         'pwd': 'Mitheint11',
         'phonetype': 1,
         'logintype': 'mobile',
         'packId': '',
         'deviceId': '51ed4ee0f338a1bb24063ffdfcd31ce6',
         'language': 7,
-        'random': '917a4606cf0140449f628bbf80a114b4',
-        'signature': '221A1FE8611A88CFE0A05A3B7594652F',
-        'timestamp': 1773024142,
+        'random': '452fa309995244de92103c0afbefbe9a',
+        'signature': '202C655177E9187D427A26F3CDC00A52',
+        'timestamp': 1773021618,
     }
+
     try:
         async with session.post('https://api.bigwinqaz.com/api/webapi/Login', headers=BASE_HEADERS, json=json_data) as response:
             data = await response.json()
@@ -117,7 +117,7 @@ async def get_user_balance(session: aiohttp.ClientSession):
     except: return "0.00"
 
 # ==========================================
-# 🧠 4. AI DYNAMIC PREDICT LOGIC 
+# 🧠 4. 💎 ULTIMATE AI: HIGHEST WIN-RATE OPTIMIZER 💎
 # ==========================================
 async def check_game_and_predict(session: aiohttp.ClientSession):
     global CURRENT_TOKEN, LAST_PROCESSED_ISSUE, LAST_PREDICTED_ISSUE, LAST_PREDICTED_RESULT
@@ -153,10 +153,10 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
                 
                 await history_collection.update_one({"issue_number": latest_issue}, {"$setOnInsert": {"number": latest_number, "size": latest_size}}, upsert=True)
                 
-                # --- နိုင်/ရှုံး စစ်ဆေးခြင်း နှင့် Streak တွက်ချက်ခြင်း ---
+                # --- နိုင်/ရှုံး စစ်ဆေးခြင်း ---
                 if LAST_PREDICTED_ISSUE == latest_issue:
                     is_win = (LAST_PREDICTED_RESULT == latest_size)
-                    TOTAL_PREDICTIONS += 1 # ခန့်မှန်းပြီးတိုင်း 1 တိုးမည်
+                    TOTAL_PREDICTIONS += 1
                     
                     if is_win:
                         win_lose_status = "WIN ✅"
@@ -179,7 +179,9 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
                         f"━━━━━━━━━━━━━━━━━━\n"
                     )
 
-                # --- AI Pattern (10-Pattern Dynamic Learning) ---
+                # ==============================================================
+                # 🧠 THE ULTIMATE AI LOGIC (Finding Maximum Historical Win Rate)
+                # ==============================================================
                 cursor = history_collection.find().sort("issue_number", -1).limit(5000)
                 history_docs = await cursor.to_list(length=5000)
                 history_docs.reverse()
@@ -187,58 +189,113 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
                 
                 predicted = "BIG (အကြီး) 🔴"
                 base_prob = 55.0
-                reason = "Pattern အသစ်ဖြစ်နေသဖြင့် သမိုင်းကြောင်းအရ တွက်ချက်ထားသည်"
-                
-                MAX_PATTERN_LENGTH = 5
-                MIN_PATTERN_LENGTH = 5
-                pattern_found =False
-                
-                for current_len in range(MAX_PATTERN_LENGTH, MIN_PATTERN_LENGTH - 1, -1):
-                    if len(all_history) > current_len:
-                        recent_pattern = all_history[-current_len:]
-                        big_next_count = 0
-                        small_next_count = 0
-                        for i in range(len(all_history) - current_len):
-                            if all_history[i:i+current_len] == recent_pattern:
-                                next_result = all_history[i+current_len]
-                                if next_result == 'BIG': big_next_count += 1
-                                elif next_result == 'SMALL': small_next_count += 1
-                                    
-                        total_pattern_matches = big_next_count + small_next_count
-                        if total_pattern_matches > 0:
-                            big_prob = (big_next_count / total_pattern_matches) * 100
-                            small_prob = (small_next_count / total_pattern_matches) * 100
-                            pattern_str = "-".join(recent_pattern).replace('BIG', 'B').replace('SMALL', 'S')
-                            
-                            if big_prob > small_prob:
-                                predicted = "BIG (အကြီး) 🔴"
-                                base_prob = big_prob
-                                reason = f"[{pattern_str}] လာလျှင် အကြီးဆက်ထွက်လေ့ရှိ၍"
-                            elif small_prob > big_prob:
-                                predicted = "SMALL (အသေး) 🟢"
-                                base_prob = small_prob
-                                reason = f"[{pattern_str}] လာလျှင် အသေးဆက်ထွက်လေ့ရှိ၍"
-                            else:
-                                predicted = "BIG (အကြီး) 🔴"
-                                base_prob = 50.0
-                                reason = f"[{pattern_str}] အရင်က မျှခြေထွက်ဖူး၍ အကြီးရွေးထားသည်"
-                            
-                            pattern_found = True
-                            break 
-                            
-                if not pattern_found:
-                    predicted = "BIG (အကြီး) 🔴" if all_history.count("SMALL") > all_history.count("BIG") else "SMALL (အသေး) 🟢"
-                    base_prob = 55.0
-                    reason = "Pattern အသစ်ဖြစ်နေသဖြင့် သမိုင်းကြောင်းအရ တွက်ချက်ထားသည်"
+                reason = "Data အချက်အလက် စုဆောင်းနေဆဲဖြစ်သည်"
 
-                final_prob = min(round(base_prob, 1), 85.0)
+                if len(all_history) > 50:
+                    highest_historical_win_rate = 0.0
+                    best_choice = None
+                    best_reason = ""
+
+                    # ၁။ 🔍 Deep Pattern Win-Rate Analysis (Length 10 down to 3)
+                    # အကောင်းဆုံး Win Rate ကို ရှာဖွေမည်
+                    for length in range(10, 2, -1):
+                        if len(all_history) > length:
+                            recent_pattern = all_history[-length:]
+                            b_count = 0
+                            s_count = 0
+                            
+                            for i in range(len(all_history) - length):
+                                if all_history[i:i+length] == recent_pattern:
+                                    next_res = all_history[i+length]
+                                    if next_res == 'BIG': b_count += 1
+                                    elif next_res == 'SMALL': s_count += 1
+                                        
+                            total_matches = b_count + s_count
+                            if total_matches >= 2: # အနည်းဆုံး ၂ ခါတူမှ အတည်ယူမည်
+                                b_wr = (b_count / total_matches) * 100
+                                s_wr = (s_count / total_matches) * 100
+                                p_str = "-".join(recent_pattern).replace('BIG', 'B').replace('SMALL', 'S')
+                                
+                                if b_wr > highest_historical_win_rate and b_wr > 50:
+                                    highest_historical_win_rate = b_wr
+                                    best_choice = "BIG"
+                                    best_reason = f"🔥 {length}-Pattern သမိုင်းကြောင်းအထိုင် (Win Rate: {b_wr:.1f}%)"
+                                    
+                                if s_wr > highest_historical_win_rate and s_wr > 50:
+                                    highest_historical_win_rate = s_wr
+                                    best_choice = "SMALL"
+                                    best_reason = f"🔥 {length}-Pattern သမိုင်းကြောင်းအထိုင် (Win Rate: {s_wr:.1f}%)"
+
+                    # ၂။ 🌊 Short-Term Momentum (ရေစီးကြောင်း နိုင်ခြေ)
+                    recent_20 = all_history[-20:]
+                    b_momentum_wr = (recent_20.count('BIG') / 20.0) * 100
+                    s_momentum_wr = (recent_20.count('SMALL') / 20.0) * 100
+                    
+                    if b_momentum_wr > highest_historical_win_rate and b_momentum_wr >= 65:
+                        highest_historical_win_rate = b_momentum_wr
+                        best_choice = "BIG"
+                        best_reason = f"🌊 ရေတိုရေစီးကြောင်း အားသာချက် (Win Rate: {b_momentum_wr:.1f}%)"
+                        
+                    if s_momentum_wr > highest_historical_win_rate and s_momentum_wr >= 65:
+                        highest_historical_win_rate = s_momentum_wr
+                        best_choice = "SMALL"
+                        best_reason = f"🌊 ရေတိုရေစီးကြောင်း အားသာချက် (Win Rate: {s_momentum_wr:.1f}%)"
+
+                    # ၃။ 🛑 Streak Breaker Probability (ဆက်တိုက်ထွက်ခြင်း ပြတ်တောက်နိုင်ခြေ)
+                    current_streak_len = 1
+                    last_color = all_history[-1]
+                    for i in range(2, min(15, len(all_history))):
+                        if all_history[-i] == last_color:
+                            current_streak_len += 1
+                        else:
+                            break
+                            
+                    if current_streak_len >= 4:
+                        break_count = 0
+                        continue_count = 0
+                        streak_pattern = [last_color] * current_streak_len
+                        
+                        for i in range(len(all_history) - current_streak_len):
+                            if all_history[i:i+current_streak_len] == streak_pattern:
+                                if all_history[i+current_streak_len] != last_color:
+                                    break_count += 1
+                                else:
+                                    continue_count += 1
+                                    
+                        total_streak_cases = break_count + continue_count
+                        if total_streak_cases > 0:
+                            break_wr = (break_count / total_streak_cases) * 100
+                            if break_wr > highest_historical_win_rate and break_wr >= 60:
+                                highest_historical_win_rate = break_wr
+                                best_choice = "SMALL" if last_color == 'BIG' else "BIG"
+                                best_reason = f"🛑 {current_streak_len} ပွဲဆက်တိုက်ထွက်ပြီး ပြတ်နိုင်ခြေ (Win Rate: {break_wr:.1f}%)"
+
+                    # ၄။ Final Decision (အကောင်းဆုံး Win Rate ရလာလဒ်ကို အတည်ပြုခြင်း)
+                    if best_choice is not None:
+                        predicted = "BIG (အကြီး) 🔴" if best_choice == "BIG" else "SMALL (အသေး) 🟢"
+                        base_prob = highest_historical_win_rate
+                        reason = f"🧠 AI Win-Rate Optimizer\n└ {best_reason}"
+                    else:
+                        # ဘာ Pattern မှမရှိရင် အများဆုံးထွက်တဲ့ကောင်ကို ရွေးမည်
+                        b_total = all_history.count('BIG')
+                        s_total = all_history.count('SMALL')
+                        if b_total > s_total:
+                            predicted = "BIG (အကြီး) 🔴"
+                            base_prob = (b_total / len(all_history)) * 100
+                        else:
+                            predicted = "SMALL (အသေး) 🟢"
+                            base_prob = (s_total / len(all_history)) * 100
+                        reason = "📊 အခြေခံဖြစ်နိုင်ခြေအရ တွက်ချက်ထားသည်"
+
+                # ရာခိုင်နှုန်းကို လက်တွေ့ကျစေရန် 55% နှင့် 95% ကြားတွင်သာ ရှိစေမည်
+                final_prob = min(max(round(base_prob, 1), 55.0), 95.0)
 
                 LAST_PREDICTED_ISSUE = next_issue
                 LAST_PREDICTED_RESULT = "BIG" if "BIG" in predicted else "SMALL"
                 
                 await predictions_collection.update_one({"issue_number": next_issue}, {"$set": {"predicted_size": LAST_PREDICTED_RESULT, "probability": final_prob, "actual_size": None, "win_lose": None}}, upsert=True)
 
-                print(f"✅ [NEW] ပွဲစဉ်: {next_issue} | Predict: {predicted}")
+                print(f"✅ [NEW] ပွဲစဉ်: {next_issue} | Predict: {predicted} | Top Win Rate: {final_prob}%")
 
                 # --- 🎨 TELEGRAM MESSAGE FORMATTING ---
                 tg_message = (
@@ -281,10 +338,10 @@ async def auto_broadcaster():
 
 @dp.message(Command("start"))
 async def send_welcome(message: types.Message):
-    await message.reply("👋 မင်္ဂလာပါ။ Bigwin AI Predictor Bot မှ ကြိုဆိုပါတယ်။\n\nစနစ်က Channel ထဲကို အလိုအလျောက် Signal တွေ ပို့ပေးနေပါပြီ။")
+    await message.reply("👋 မင်္ဂလာပါ။ Bigwin Ultimate AI Predictor Bot မှ ကြိုဆိုပါတယ်။\n\nစနစ်က Channel ထဲကို အလိုအလျောက် Signal တွေ ပို့ပေးနေပါပြီ။")
 
 async def main():
-    print("🚀 Aiogram Bigwin Bot (New UI + Streak Tracker) စတင်နေပါပြီ...\n")
+    print("🚀 Aiogram Bigwin Bot (Ultimate Win-Rate Optimizer) စတင်နေပါပြီ...\n")
     await bot.delete_webhook(drop_pending_updates=True)
     asyncio.create_task(auto_broadcaster())
     await dp.start_polling(bot)
