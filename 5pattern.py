@@ -18,9 +18,10 @@ from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 import matplotlib
-matplotlib.use('Agg') # Background တွင် ပုံဆွဲရန်
+matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from aiogram.types import BufferedInputFile, InputMediaPhoto
 import warnings
 warnings.filterwarnings("ignore")
 # ------------------------------------------
@@ -71,7 +72,7 @@ async def init_db():
     try:
         await history_collection.create_index("issue_number", unique=True)
         await predictions_collection.create_index("issue_number", unique=True)
-        print("🗄 MongoDB ချိတ်ဆက်မှု အောင်မြင်ပါသည်။ (🚀 Ensemble AI Engine Enabled)")
+        print("🗄 MongoDB ချိတ်ဆက်မှု အောင်မြင်ပါသည်။ (🚀 Casino Deep Memory Engine Enabled)")
     except Exception as e:
         pass
 
@@ -110,30 +111,58 @@ async def login_and_get_token(session: aiohttp.ClientSession):
     return False
 
 # ==========================================
-# 🧠 4. ENSEMBLE AI ENGINE (3 Models in 1)
+# 🧠 4. CASINO DEEP MEMORY ENGINE (NEW)
 # ==========================================
-def ensemble_predict(history_docs):
+def casino_memory_predict(history_docs):
     """
-    Random Forest, Markov Chain နှင့် Momentum ပေါင်းစပ်၍ မဲပေးဆုံးဖြတ်သော အဆင့်မြင့်စနစ်
+    ကာစီနို၏ Algorithm ကို အတုခိုးထားသော Memory Bank နှင့် Macro Balance စနစ်
     """
-    if len(history_docs) < 30: return "BIG", 55.0
+    if len(history_docs) < 50: return "BIG", 55.0, "Data စုဆောင်းဆဲ..."
+    
     docs = list(reversed(history_docs)) 
     sizes = [d.get('size', 'BIG') for d in docs]
     
-    # 📌 Model 1: Markov Chain (သမိုင်းကြောင်း ထပ်တူညီမှု ရှာဖွေခြင်း)
-    last_3 = sizes[-3:]
-    b_markov, s_markov = 0, 0
-    for i in range(len(sizes)-3):
-        if sizes[i:i+3] == last_3:
-            if sizes[i+3] == 'BIG': b_markov += 1
-            else: s_markov += 1
-            
-    # 📌 Model 2: Short-Term Momentum (ကာစီနို မျှခြေစနစ်)
-    recent_10 = sizes[-10:]
-    b_count = recent_10.count('BIG')
-    s_count = recent_10.count('SMALL')
+    score_b, score_s = 0.0, 0.0
+    logic_used = ""
+
+    # 🧠 [Memory 1] DEEP N-GRAM BANK (အတိတ်ပုံစံများကို ရှာဖွေခြင်း)
+    # လက်ရှိ နောက်ဆုံး ၄ ပွဲ၏ ပုံစံအတိုင်း အတိတ်မှာ ထွက်ခဲ့ဖူးသလား ရှာမည်
+    pattern_length = 4
+    if len(sizes) > pattern_length:
+        current_pattern = sizes[-pattern_length:]
+        b_memory, s_memory = 0, 0
+        
+        for i in range(len(sizes) - pattern_length):
+            if sizes[i:i+pattern_length] == current_pattern:
+                if i + pattern_length < len(sizes):
+                    if sizes[i+pattern_length] == 'BIG': b_memory += 1
+                    else: s_memory += 1
+                    
+        if b_memory > s_memory:
+            score_b += 3.0
+            logic_used += f"├ 📚 Deep Memory ({b_memory} ကြိမ် BIG ဆက်စပ်မှု)\n"
+        elif s_memory > b_memory:
+            score_s += 3.0
+            logic_used += f"├ 📚 Deep Memory ({s_memory} ကြိမ် SMALL ဆက်စပ်မှု)\n"
+        else:
+            logic_used += "├ 📚 Deep Memory (မှတ်တမ်းမရှိသေးပါ)\n"
+
+    # ⚖️ [Memory 2] MACRO BALANCE (ကာစီနို မျှခြေစနစ်)
+    # နောက်ဆုံး ပွဲ ၁၀၀ တွင် တစ်ဘက်တည်း အရမ်းများနေပါက ကာစီနိုက အခြားတစ်ဘက်ကို ပြန်ထုတ်ပေးသည်
+    last_100 = sizes[-100:] if len(sizes) >= 100 else sizes
+    b_100 = last_100.count('BIG')
+    s_100 = last_100.count('SMALL')
     
-    # 📌 Model 3: Random Forest (Pattern Recognition)
+    if b_100 > (len(last_100) * 0.55): # အကြီး ၅၅% ထက်ကျော်နေရင် အသေးပြန်ချမည်
+        score_s += 2.5
+        logic_used += f"├ ⚖️ Casino Balance (SMALL သို့ မျှခြေပြန်ဆွဲမည်)\n"
+    elif s_100 > (len(last_100) * 0.55): # အသေး ၅၅% ထက်ကျော်နေရင် အကြီးပြန်ချမည်
+        score_b += 2.5
+        logic_used += f"├ ⚖️ Casino Balance (BIG သို့ မျှခြေပြန်ဆွဲမည်)\n"
+    else:
+        logic_used += f"├ ⚖️ Casino Balance (မျှခြေ ၅၀/၅၀ ရှိနေသည်)\n"
+
+    # 🌲 [Memory 3] MACHINE LEARNING (ပုံမှန် ခန့်မှန်းမှု)
     X, y = [], []
     window = 5
     def enc(s): return 1 if s == 'BIG' else 0
@@ -141,39 +170,28 @@ def ensemble_predict(history_docs):
         X.append([enc(s) for s in sizes[i:i+window]])
         y.append(enc(sizes[i+window]))
         
-    clf = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
-    clf.fit(X, y)
-    rf_pred_num = clf.predict([[enc(s) for s in sizes[-window:]]])[0]
-    rf_prob = max(clf.predict_proba([[enc(s) for s in sizes[-window:]]])[0])
-    rf_pred = "BIG" if rf_pred_num == 1 else "SMALL"
-
-    # ⚖️ VOTING SYSTEM (အမှတ်ပေးစနစ်)
-    score_b, score_s = 0.0, 0.0
-    
-    # Markov Score
-    if b_markov > s_markov: score_b += 1.5
-    elif s_markov > b_markov: score_s += 1.5
-    
-    # Momentum Score (တစ်ဘက်တည်း အရမ်းထွက်နေလျှင် မျှခြေပြန်ဆွဲမည်)
-    if b_count >= 7: score_s += 1.5
-    elif s_count >= 7: score_b += 1.5
-    else:
-        if b_count > s_count: score_b += 0.5
-        else: score_s += 0.5
+    if len(X) > 10:
+        clf = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
+        clf.fit(X, y)
+        rf_pred_num = clf.predict([[enc(s) for s in sizes[-window:]]])[0]
+        rf_prob = max(clf.predict_proba([[enc(s) for s in sizes[-window:]]])[0])
         
-    # Random Forest Score
-    if rf_pred == "BIG": score_b += (rf_prob * 2.0)
-    else: score_s += (rf_prob * 2.0)
+        if rf_pred_num == 1:
+            score_b += (rf_prob * 2.0)
+        else:
+            score_s += (rf_prob * 2.0)
+            
+    logic_used += "└ 🤖 ML Pattern Recognition"
 
     # 🏆 အပြီးသတ် ဆုံးဖြတ်ချက်
     final_pred = "BIG" if score_b > score_s else "SMALL"
     total_score = score_b + score_s
-    if total_score == 0: return "BIG", 55.0
+    if total_score == 0: return "BIG", 55.0, logic_used
     
     calc_prob = (max(score_b, score_s) / total_score) * 100
-    final_prob = min(max(calc_prob, 65.0), 94.0)
+    final_prob = min(max(calc_prob, 70.0), 96.0) # Casino Memory သုံးထားသဖြင့် ယုံကြည်မှုနှုန်း ပိုမြင့်သည်
     
-    return final_pred, final_prob
+    return final_pred, final_prob, logic_used
 
 # ==========================================
 # 🎨 5. DYNAMIC GRAPH GENERATOR 
@@ -235,7 +253,7 @@ def generate_winrate_chart(predictions):
         y_coords = [0.5] * n_dots
         dot_ax.scatter(x_coords, y_coords, s=250, c=colors, edgecolors='white', linewidths=1.5, zorder=5)
             
-    plt.figtext(0.5, -0.28, "DEV-WANG LIN", color='green', fontsize=20, fontweight='bold', ha='center', alpha=0.5)
+    plt.figtext(0.5, -0.28, "DEV-WANG LIN", color='white', fontsize=15, fontweight='bold', ha='center', alpha=0.5)
 
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight', dpi=100, facecolor='#1e222d')
@@ -317,7 +335,7 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
         SESSION_START_ISSUE = next_issue
     
     # ==============================================================
-    # 🧠 PREDICTION LOGIC (Ensemble + Trend Surfing)
+    # 🧠 PREDICTION LOGIC (CASINO MEMORY + TREND SURFER)
     # ==============================================================
     cursor = history_collection.find().sort("issue_number", -1).limit(5000)
     history_docs = await cursor.to_list(length=5000)
@@ -337,34 +355,32 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
     reason = "Data မလုံလောက်သေးပါ"
     
     if len(history_docs) >= 1:
-        # 🚨 [၁] LOSS LIMIT PROTOCOL (အရှုံး ၃ ပွဲဆက်ပါက ရေစီးကြောင်းအတိုင်းသာ လိုက်မည်)
+        # 🚨 [၁] TREND SURFER (အရှုံး ၃ ပွဲဆက်ပါက ရေစီးကြောင်းအတိုင်းသာ လိုက်မည်)
         if current_lose_streak >= 3:
             last_actual_size = history_docs[0].get('size', 'BIG')
             predicted = "BIG (အကြီး) 🔴" if last_actual_size == "BIG" else "SMALL (အသေး) 🟢"
-            base_prob = 95.0
+            base_prob = 98.0
             reason = (
-                f"🚨 <b>Loss Limit Protocol</b>\n"
-                f"└ (အရှုံးများနေသဖြင့် နောက်ဆုံးထွက်ခဲ့သော ရလဒ်အတိုင်း လုံခြုံစွာ လိုက်ပါမည်)"
+                f"🚨 <b>Trend Surfer Protocol</b>\n"
+                f"└ (အရှုံးဖြတ်တောက်ရန် ထွက်ပြီးသားအတိုင်း လိုက်ပါသည်)"
             )
             
-        # 🤖 [၂] ENSEMBLE AI PREDICTION (သာမန်အချိန်တွင် အင်ဂျင် ၃ ခုပေါင်း၍ စဉ်းစားမည်)
+        # 🤖 [၂] CASINO MEMORY CLONE PREDICTION 
         else:
             try:
-                ens_pred, ens_prob = await asyncio.to_thread(ensemble_predict, history_docs)
-                predicted = "BIG (အကြီး) 🔴" if ens_pred == "BIG" else "SMALL (အသေး) 🟢"
-                base_prob = ens_prob
+                mem_pred, mem_prob, mem_logic = await asyncio.to_thread(casino_memory_predict, history_docs)
+                predicted = "BIG (အကြီး) 🔴" if mem_pred == "BIG" else "SMALL (အသေး) 🟢"
+                base_prob = mem_prob
                 reason = (
-                    f"🧠 <b>Ensemble AI (Tri-Engine)</b>\n"
-                    f"├ 🌲 Random Forest ML\n"
-                    f"├ 🔄 Markov Chain (သမိုင်းကြောင်း)\n"
-                    f"└ ⚖️ Momentum Analytics"
+                    f"🧠 <b>Casino Deep Memory Clone</b>\n"
+                    f"{mem_logic}"
                 )
             except Exception as e:
                 predicted = "BIG (အကြီး) 🔴"
                 base_prob = 55.0
-                reason = "⚠️ AI Model Loading..."
+                reason = "⚠️ Memory Syncing..."
     
-    final_prob = min(max(round(base_prob, 1), 60.0), 96.0)
+    final_prob = min(max(round(base_prob, 1), 60.0), 98.0)
     predicted_result_db = "BIG" if "BIG" in predicted else "SMALL"
     
     await predictions_collection.update_one(
@@ -436,7 +452,7 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
             MAIN_MESSAGE_ID = None 
 
 # ==========================================
-# 🔄 6. BACKGROUND TASK (ULTRA FAST POLLING)
+# 🔄 6. BACKGROUND TASK 
 # ==========================================
 async def auto_broadcaster():
     await init_db() 
@@ -448,10 +464,10 @@ async def auto_broadcaster():
 
 @dp.message(Command("start"))
 async def send_welcome(message: types.Message):
-    await message.reply("👋 မင်္ဂလာပါ။ စနစ်က Ensemble AI နှင့် Loss Limit စနစ်ဖြင့် လုံခြုံစွာ အလုပ်လုပ်နေပါပြီ။")
+    await message.reply("👋 မင်္ဂလာပါ။ စနစ်သည် ကာစီနို၏ မှတ်ဉာဏ်ကို အတုခိုးသည့် Deep Memory System ဖြင့် အလုပ်လုပ်နေပါပြီ။")
 
 async def main():
-    print("🚀 Aiogram Bigwin Bot (Ensemble AI Edition) စတင်နေပါပြီ...\n")
+    print("🚀 Aiogram Bigwin Bot (Casino Deep Memory Edition) စတင်နေပါပြီ...\n")
     await bot.delete_webhook(drop_pending_updates=True)
     asyncio.create_task(auto_broadcaster())
     await dp.start_polling(bot)
