@@ -67,7 +67,7 @@ async def init_db():
     try:
         await history_collection.create_index("issue_number", unique=True)
         await predictions_collection.create_index("issue_number", unique=True)
-        print("🗄 MongoDB ချိတ်ဆက်မှု အောင်မြင်ပါသည်။ (🔍 X-Ray Debug Edition)")
+        print("🗄 MongoDB ချိတ်ဆက်မှု အောင်မြင်ပါသည်။ (🚀 Master Key Edition)")
     except Exception as e:
         print(f"❌ MongoDB Error: {e}")
 
@@ -82,9 +82,11 @@ async def fetch_with_retry(session, url, headers, json_data, retries=3):
                 return None
             await asyncio.sleep(1)
 
+# ==========================================
+# 🔑 3. ASYNC API FUNCTIONS (MASTER KEYS)
+# ==========================================
 async def login_and_get_token(session: aiohttp.ClientSession):
     global CURRENT_TOKEN
-    # Login အတွက် Signature က မဖြစ်မနေ လိုအပ်လို့ မူရင်းကိုသုံးပါမည်
     json_data = {
         'username': USERNAME, 
         'pwd': PASSWORD,
@@ -109,7 +111,12 @@ async def login_and_get_token(session: aiohttp.ClientSession):
 
 async def get_account_balance(session: aiohttp.ClientSession, headers):
     url = 'https://api.bigwinqaz.com/api/webapi/GetBalance'
-    json_data = {'language': 7} # 💡 Signature ဖယ်ရှားစမ်းသပ်ထားသည်
+    json_data = {
+        'language': 7,
+        'random': 'e0340b8b39684e1c8c2e2391d9ca02d5',
+        'signature': '6AF1E9AD003853931B95189800F9FA4B',
+        'timestamp': 1773195076,
+    }
     res = await fetch_with_retry(session, url, headers, json_data)
     if res and res.get('code') == 0:
         data_val = res.get('data')
@@ -119,7 +126,13 @@ async def get_account_balance(session: aiohttp.ClientSession, headers):
 
 async def get_current_issue(session: aiohttp.ClientSession, headers):
     url = 'https://api.bigwinqaz.com/api/webapi/GetTRXGameIssue'
-    json_data = {'typeId': 13, 'language': 7} # 💡 Signature ဖယ်ရှားစမ်းသပ်ထားသည်
+    json_data = {
+        'typeId': 13,
+        'language': 7,
+        'random': '3d704ba98ce14bf2a8c1153c27e234e0',
+        'signature': 'DEB5F9E0B146BFE09C316AD1417A97A8',
+        'timestamp': 1773211260,
+    }
     res = await fetch_with_retry(session, url, headers, json_data)
     if res and res.get('code') == 0:
         return str(res.get('data', {}).get('issueNumber', ''))
@@ -130,7 +143,6 @@ def crypto_trx_predict(history_docs, current_lose_streak):
     docs = list(reversed(history_docs)) 
     sizes = [d.get('size', 'BIG') for d in docs]
     logic_used = "⛓️ <b>Blockchain Hash Strategy</b>\n"
-    last_3 = sizes[-3:]
     last_size = sizes[-1]
     
     if current_lose_streak >= 2:
@@ -205,7 +217,7 @@ def generate_winrate_chart(predictions):
         y_coords = [0.5] * n_dots
         dot_ax.scatter(x_coords, y_coords, s=250, c=colors, edgecolors='white', linewidths=1.5, zorder=5)
             
-    plt.figtext(0.5, -0.28, "DEV-WANG LIN (TRX BLOCKCHAIN)", color='#787b86', fontsize=12, ha='center', alpha=1)
+    plt.figtext(0.5, -0.28, "DEV-WANG LIN", color='white', fontsize=15, fontweight='bold', ha='center', alpha=1)
 
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight', dpi=100, facecolor='#1e222d')
@@ -225,12 +237,19 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
     headers = BASE_HEADERS.copy()
     headers['authorization'] = CURRENT_TOKEN
 
-    # 💡 စမ်းသပ်ချက်: List ဆွဲသည့် API မှ Signature ဖယ်ရှားထားသည်
-    json_data_list = {'pageSize': 10, 'pageNo': 1, 'typeId': 13, 'language': 7}
+    # 💡 Master Key တပ်ဆင်ထားသော Payload
+    json_data_list = {
+        'pageSize': 10,
+        'pageNo': 1,
+        'typeId': 13,
+        'language': 7,
+        'random': '6f1cfc8bbeeb44ec98343ac38d1af67c',
+        'signature': '5E271BE324AFB34F9A2E5EC9F7CE05D2',
+        'timestamp': 1773211343,
+    }
 
     data = await fetch_with_retry(session, 'https://api.bigwinqaz.com/api/webapi/GetTRXNoaverageEmerdList', headers, json_data_list)
     
-    # 🔍 ခြေရာခံခြင်း (1) - API အလုပ်လုပ်မှု ရှိ/မရှိ စစ်ဆေးမည်
     if not data or data.get('code') != 0:
         print(f"❌ [API Error] GetList ငြင်းပယ်ခံရပါသည်: {data}")
         if data and (data.get('code') == 401 or "token" in str(data.get('msg')).lower()): 
@@ -239,7 +258,6 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
 
     records = data.get("data", {}).get("list", [])
     
-    # 🔍 ခြေရာခံခြင်း (2) - Data လွတ်နေခြင်း ရှိ/မရှိ စစ်ဆေးမည်
     if not records: 
         print("⚠️ [Data Empty] API မှ Data ပို့သော်လည်း List အလွတ်ဖြစ်နေပါသည်။")
         return
@@ -356,21 +374,20 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
         if sec_left == 60: sec_left = 0
         return (
             f"<b>💎 TRX WIN GO (1 Minute)</b>\n"
-            f"💰 <b>Balance:</b> {CURRENT_BALANCE} 🪙\n"
+            #f"💰 <b>Balance:</b> {CURRENT_BALANCE} 🪙\n"
             f"⏰ Next Result In: <b>{sec_left}s</b>\n\n"
             f"{table_str}\n"
             f"🅿️ <b>Period:</b> {next_issue[:3]}**{next_issue[-4:]}\n"
             f"🎯 <b>Predict: {predicted}</b>\n"
             f"📈 <b>ဖြစ်နိုင်ခြေ:</b> {base_prob}%\n"
-            f"💡 <b>အကြောင်းပြချက်:</b>\n"
-            f"{reason}\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
+            #f"💡 <b>အကြောင်းပြချက်:</b>\n"
+            #f"{reason}\n"
+            #f"━━━━━━━━━━━━━━━━━━\n"
             f"{bet_advice}"
         )
     
     current_time = time.time()
     try:
-        # 🔍 ခြေရာခံခြင်း (3) - Telegram သို့ ပို့နေပြီဖြစ်ကြောင်း မှတ်တမ်း
         if is_new_issue or not MAIN_MESSAGE_ID:
             print("⏳ Telegram သို့ ပုံနှင့်စာသစ် ပို့ရန်ပြင်ဆင်နေပါသည်...")
             img_buf = await asyncio.to_thread(generate_winrate_chart, session_preds)
@@ -423,10 +440,10 @@ async def auto_broadcaster():
 
 @dp.message(Command("start"))
 async def send_welcome(message: types.Message):
-    await message.reply("👋 မင်္ဂလာပါ။ စနစ်က TRX Crypto Trend Surfer စနစ်ဖြင့် အလုပ်လုပ်နေပါပြီ။")
+    await message.reply("👋 မင်္ဂလာပါ။ စနစ်က TRX Crypto Master Key စနစ်ဖြင့် အလုပ်လုပ်နေပါပြီ။")
 
 async def main():
-    print("🚀 Aiogram TRX Win Go Bot (X-Ray Debug Edition) စတင်နေပါပြီ...\n")
+    print("🚀 Aiogram TRX Win Go Bot (Master Key Edition) စတင်နေပါပြီ...\n")
     await bot.delete_webhook(drop_pending_updates=True)
     asyncio.create_task(auto_broadcaster())
     await dp.start_polling(bot)
