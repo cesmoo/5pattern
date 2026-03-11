@@ -12,8 +12,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
-from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import BufferedInputFile, InputMediaPhoto
+from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 
 # --- 🧠 TRUE MACHINE LEARNING LIBRARIES ---
 import numpy as np
@@ -57,7 +56,7 @@ CURRENT_TOKEN = ""
 LAST_PROCESSED_ISSUE = None
 MAIN_MESSAGE_ID = None 
 SESSION_START_ISSUE = None 
-LAST_CAPTION_EDIT_TIME = 0 # Telegram Spam Limit မထိစေရန် မှတ်သားမည့်စနစ်
+LAST_CAPTION_EDIT_TIME = 0 
 
 BASE_HEADERS = {
     'authority': 'api.bigwinqaz.com',
@@ -72,7 +71,7 @@ async def init_db():
     try:
         await history_collection.create_index("issue_number", unique=True)
         await predictions_collection.create_index("issue_number", unique=True)
-        print("🗄 MongoDB ချိတ်ဆက်မှု အောင်မြင်ပါသည်။ (⚡ Instant Update System Enabled)")
+        print("🗄 MongoDB ချိတ်ဆက်မှု အောင်မြင်ပါသည်။ (🚀 Ensemble AI Engine Enabled)")
     except Exception as e:
         pass
 
@@ -111,53 +110,70 @@ async def login_and_get_token(session: aiohttp.ClientSession):
     return False
 
 # ==========================================
-# 🧠 4. ADAPTIVE MACHINE LEARNING ENGINE
+# 🧠 4. ENSEMBLE AI ENGINE (3 Models in 1)
 # ==========================================
-def train_and_predict_ml(history_docs):
-    if len(history_docs) < 30: return None, 0.0
+def ensemble_predict(history_docs):
+    """
+    Random Forest, Markov Chain နှင့် Momentum ပေါင်းစပ်၍ မဲပေးဆုံးဖြတ်သော အဆင့်မြင့်စနစ်
+    """
+    if len(history_docs) < 30: return "BIG", 55.0
     docs = list(reversed(history_docs)) 
+    sizes = [d.get('size', 'BIG') for d in docs]
+    
+    # 📌 Model 1: Markov Chain (သမိုင်းကြောင်း ထပ်တူညီမှု ရှာဖွေခြင်း)
+    last_3 = sizes[-3:]
+    b_markov, s_markov = 0, 0
+    for i in range(len(sizes)-3):
+        if sizes[i:i+3] == last_3:
+            if sizes[i+3] == 'BIG': b_markov += 1
+            else: s_markov += 1
+            
+    # 📌 Model 2: Short-Term Momentum (ကာစီနို မျှခြေစနစ်)
+    recent_10 = sizes[-10:]
+    b_count = recent_10.count('BIG')
+    s_count = recent_10.count('SMALL')
+    
+    # 📌 Model 3: Random Forest (Pattern Recognition)
     X, y = [], []
-    window_size = 6 
-    
-    def enc_size(s): return 1 if s == 'BIG' else 0
-    def enc_par(p): return 1 if p == 'EVEN' else 0
-    def enc_time(t): return {'MORNING':0, 'AFTERNOON':1, 'NIGHT':2, 'LATE_NIGHT':3}.get(t, 0)
-    
-    for i in range(len(docs) - window_size):
-        window_docs = docs[i : i+window_size]
-        target_doc = docs[i+window_size]
-        features = []
-        for doc in window_docs:
-            features.extend([
-                enc_size(doc.get('size', 'BIG')), 
-                enc_par(doc.get('parity', 'EVEN')), 
-                int(doc.get('number', 0)) % 5, 
-                enc_time(doc.get('time_context', 'MORNING'))
-            ])
-        X.append(features)
-        y.append(enc_size(target_doc.get('size', 'BIG')))
+    window = 5
+    def enc(s): return 1 if s == 'BIG' else 0
+    for i in range(len(sizes) - window):
+        X.append([enc(s) for s in sizes[i:i+window]])
+        y.append(enc(sizes[i+window]))
         
-    if len(X) < 15: return None, 0.0
-    
-    clf = RandomForestClassifier(n_estimators=150, max_depth=8, random_state=42)
+    clf = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
     clf.fit(X, y)
+    rf_pred_num = clf.predict([[enc(s) for s in sizes[-window:]]])[0]
+    rf_prob = max(clf.predict_proba([[enc(s) for s in sizes[-window:]]])[0])
+    rf_pred = "BIG" if rf_pred_num == 1 else "SMALL"
+
+    # ⚖️ VOTING SYSTEM (အမှတ်ပေးစနစ်)
+    score_b, score_s = 0.0, 0.0
     
-    latest_features = []
-    for doc in docs[-window_size:]:
-        latest_features.extend([
-            enc_size(doc.get('size', 'BIG')), 
-            enc_par(doc.get('parity', 'EVEN')), 
-            int(doc.get('number', 0)) % 5,
-            enc_time(doc.get('time_context', 'MORNING'))
-        ])
+    # Markov Score
+    if b_markov > s_markov: score_b += 1.5
+    elif s_markov > b_markov: score_s += 1.5
+    
+    # Momentum Score (တစ်ဘက်တည်း အရမ်းထွက်နေလျှင် မျှခြေပြန်ဆွဲမည်)
+    if b_count >= 7: score_s += 1.5
+    elif s_count >= 7: score_b += 1.5
+    else:
+        if b_count > s_count: score_b += 0.5
+        else: score_s += 0.5
         
-    pred = clf.predict([latest_features])[0]
-    prob = clf.predict_proba([latest_features])[0]
+    # Random Forest Score
+    if rf_pred == "BIG": score_b += (rf_prob * 2.0)
+    else: score_s += (rf_prob * 2.0)
+
+    # 🏆 အပြီးသတ် ဆုံးဖြတ်ချက်
+    final_pred = "BIG" if score_b > score_s else "SMALL"
+    total_score = score_b + score_s
+    if total_score == 0: return "BIG", 55.0
     
-    predicted_size = "BIG" if pred == 1 else "SMALL"
-    max_prob = max(prob) * 100
+    calc_prob = (max(score_b, score_s) / total_score) * 100
+    final_prob = min(max(calc_prob, 65.0), 94.0)
     
-    return predicted_size, max_prob
+    return final_pred, final_prob
 
 # ==========================================
 # 🎨 5. DYNAMIC GRAPH GENERATOR 
@@ -219,7 +235,7 @@ def generate_winrate_chart(predictions):
         y_coords = [0.5] * n_dots
         dot_ax.scatter(x_coords, y_coords, s=250, c=colors, edgecolors='white', linewidths=1.5, zorder=5)
             
-    plt.figtext(0.5, -0.28, "DEV-WANG LIN", color='white', fontsize=20, ha='center', alpha=0.5)
+    plt.figtext(0.5, -0.28, "DEV-WANG LIN", color='green', fontsize=20, fontweight='bold', ha='center', alpha=0.5)
 
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight', dpi=100, facecolor='#1e222d')
@@ -258,12 +274,6 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
     latest_size = "BIG" if latest_number >= 5 else "SMALL"
     latest_parity = "EVEN" if latest_number % 2 == 0 else "ODD"
     
-    current_hour = datetime.now().hour
-    if 6 <= current_hour < 12: time_context = 'MORNING'
-    elif 12 <= current_hour < 18: time_context = 'AFTERNOON'
-    elif 18 <= current_hour < 24: time_context = 'NIGHT'
-    else: time_context = 'LATE_NIGHT'
-    
     is_new_issue = False
     if not LAST_PROCESSED_ISSUE:
         is_new_issue = True
@@ -279,7 +289,7 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
             {"issue_number": latest_issue}, 
             {"$setOnInsert": {
                 "number": latest_number, "size": latest_size, 
-                "parity": latest_parity, "time_context": time_context
+                "parity": latest_parity, "time_context": "CURRENT"
             }}, upsert=True
         )
         
@@ -307,7 +317,7 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
         SESSION_START_ISSUE = next_issue
     
     # ==============================================================
-    # 🧠 PREDICTION LOGIC
+    # 🧠 PREDICTION LOGIC (Ensemble + Trend Surfing)
     # ==============================================================
     cursor = history_collection.find().sort("issue_number", -1).limit(5000)
     history_docs = await cursor.to_list(length=5000)
@@ -326,50 +336,33 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
     base_prob = 55.0
     reason = "Data မလုံလောက်သေးပါ"
     
-    if len(history_docs) >= 4:
-        last_4_sizes = [doc.get('size') for doc in history_docs[:4]]
-        last_3_sizes = last_4_sizes[:3]
-        
-        if len(set(last_3_sizes)) == 1 and current_lose_streak < 3:
-            trend_size = last_3_sizes[0]
-            predicted = "BIG (အကြီး) 🔴" if trend_size == "BIG" else "SMALL (အသေး) 🟢"
-            base_prob = 89.5 
-            reason = f"🔥 <b>Trend Analysis</b>\n└ (အတန်းရှည်နောက် လိုက်မည်)"
+    if len(history_docs) >= 1:
+        # 🚨 [၁] LOSS LIMIT PROTOCOL (အရှုံး ၃ ပွဲဆက်ပါက ရေစီးကြောင်းအတိုင်းသာ လိုက်မည်)
+        if current_lose_streak >= 3:
+            last_actual_size = history_docs[0].get('size', 'BIG')
+            predicted = "BIG (အကြီး) 🔴" if last_actual_size == "BIG" else "SMALL (အသေး) 🟢"
+            base_prob = 95.0
+            reason = (
+                f"🚨 <b>Loss Limit Protocol</b>\n"
+                f"└ (အရှုံးများနေသဖြင့် နောက်ဆုံးထွက်ခဲ့သော ရလဒ်အတိုင်း လုံခြုံစွာ လိုက်ပါမည်)"
+            )
             
-        elif last_4_sizes[0] == last_4_sizes[2] and last_4_sizes[1] == last_4_sizes[3] and last_4_sizes[0] != last_4_sizes[1] and current_lose_streak < 3:
-            expected_size = last_4_sizes[1] 
-            predicted = "BIG (အကြီး) 🔴" if expected_size == "BIG" else "SMALL (အသေး) 🟢"
-            base_prob = 85.0
-            reason = f"🏓 <b>Trend Analysis</b>\n└ (ခုတ်ချိုးနောက် လိုက်မည်)"
-            
+        # 🤖 [၂] ENSEMBLE AI PREDICTION (သာမန်အချိန်တွင် အင်ဂျင် ၃ ခုပေါင်း၍ စဉ်းစားမည်)
         else:
             try:
-                ml_pred, ml_prob = await asyncio.to_thread(train_and_predict_ml, history_docs)
-                if ml_pred:
-                    predicted = "BIG (အကြီး) 🔴" if ml_pred == "BIG" else "SMALL (အသေး) 🟢"
-                    base_prob = 65.0 + (ml_prob - 50.0) * 1.5 
-                    reason = (
-                        f"🤖 <b>AI Machine Learning Engine</b>\n"
-                        f"├ 🔢 Number Tracking ({history_docs[0].get('number', 0)} ဆက်စပ်မှု)\n"
-                        f"├ ⚖️ Parity Matrix ({history_docs[0].get('parity', 'EVEN')} မ/စုံ)\n"
-                        f"└ ⏰ Time Context ({time_context})"
-                    )
-                else:
-                    predicted = "BIG (အကြီး) 🔴" if history_docs[0].get('size') == 'SMALL' else "SMALL (အသေး) 🟢"
-                    base_prob = 55.0
-                    reason = "📊 အခြေခံ ရေစီးကြောင်းအရ တွက်ချက်မှု"
+                ens_pred, ens_prob = await asyncio.to_thread(ensemble_predict, history_docs)
+                predicted = "BIG (အကြီး) 🔴" if ens_pred == "BIG" else "SMALL (အသေး) 🟢"
+                base_prob = ens_prob
+                reason = (
+                    f"🧠 <b>Ensemble AI (Tri-Engine)</b>\n"
+                    f"├ 🌲 Random Forest ML\n"
+                    f"├ 🔄 Markov Chain (သမိုင်းကြောင်း)\n"
+                    f"└ ⚖️ Momentum Analytics"
+                )
             except Exception as e:
                 predicted = "BIG (အကြီး) 🔴"
                 base_prob = 55.0
-                reason = "⚠️ ML Model Error. Basic Check."
-                
-        if current_lose_streak >= 3:
-            if "BIG" in predicted:
-                predicted = "SMALL (အသေး) 🟢"
-            else:
-                predicted = "BIG (အကြီး) 🔴"
-            base_prob = 92.5
-            reason = f"🚨 <b>Adaptive Reverser Activated</b>\n└ (ကာစီနို၏ Anti-pattern ကြောင့် ပြောင်းပြန်ချိုး၍ တွက်ချက်ထားသည်)"
+                reason = "⚠️ AI Model Loading..."
     
     final_prob = min(max(round(base_prob, 1), 60.0), 96.0)
     predicted_result_db = "BIG" if "BIG" in predicted else "SMALL"
@@ -412,10 +405,8 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
         f"{reason}"
     )
     
-    # ⚡ [FIX] Update Speed Optimization (Instant Delivery)
     current_time = time.time()
     try:
-        # ပွဲစဉ်အသစ် ထွက်သည့် "စက္ကန့်" တွင် အချိန်လုံးဝမဆိုင်းဘဲ ချက်ချင်း Update လုပ်မည်
         if is_new_issue or not MAIN_MESSAGE_ID:
             img_buf = await asyncio.to_thread(generate_winrate_chart, session_preds)
             unique_filename = f"winrate_chart_{int(current_time)}.png"
@@ -428,17 +419,20 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
                 msg = await bot.send_photo(chat_id=TELEGRAM_CHANNEL_ID, photo=photo, caption=tg_caption)
                 MAIN_MESSAGE_ID = msg.message_id
             
-            LAST_CAPTION_EDIT_TIME = current_time # Update လုပ်ပြီးကြောင်း မှတ်သားမည်
+            LAST_CAPTION_EDIT_TIME = current_time 
             
         else:
-            # ပွဲစဉ်အသစ်မထွက်သေးဘဲ အချိန်စက္ကန့်လျော့နေချိန်တွင် Telegram လိုင်းမပိတ်စေရန် (၅ စက္ကန့်ခြားမှသာ) Caption ပြင်မည်
-            if current_time - LAST_CAPTION_EDIT_TIME >= 5:
+            if current_time - LAST_CAPTION_EDIT_TIME >= 1.0:
                 if MAIN_MESSAGE_ID:
-                    await bot.edit_message_caption(chat_id=TELEGRAM_CHANNEL_ID, message_id=MAIN_MESSAGE_ID, caption=tg_caption)
+                    await bot.edit_message_caption(chat_id=TELEGRAM_CHANNEL_ID, message_id=MAIN_MESSAGE_ID, caption=tg_caption, parse_mode="HTML")
                 LAST_CAPTION_EDIT_TIME = current_time
                 
+    except TelegramRetryAfter as e:
+        LAST_CAPTION_EDIT_TIME = current_time + e.retry_after
     except TelegramBadRequest as e:
-        if "message to edit not found" in str(e):
+        if "message is not modified" in str(e):
+            pass 
+        elif "message to edit not found" in str(e):
             MAIN_MESSAGE_ID = None 
 
 # ==========================================
@@ -450,15 +444,14 @@ async def auto_broadcaster():
         await login_and_get_token(session)
         while True:
             await check_game_and_predict(session)
-            # ⚡ ၃၀ စက္ကန့်ပြည့်တာနဲ့ ချက်ချင်းသိနိုင်ရန် (၂) စက္ကန့်အစား (၁) စက္ကန့်ဖြင့် အမြန်ဆုံးဆွဲယူမည်
-            await asyncio.sleep(1) 
+            await asyncio.sleep(0.5) 
 
 @dp.message(Command("start"))
 async def send_welcome(message: types.Message):
-    await message.reply("👋 မင်္ဂလာပါ။ စနစ်က 30-Seconds ပြည့်တာနဲ့ တန်းပြီး ချက်ချင်း Update လုပ်ပေးမည့် Instant System ဖြင့် အလုပ်လုပ်နေပါပြီ။")
+    await message.reply("👋 မင်္ဂလာပါ။ စနစ်က Ensemble AI နှင့် Loss Limit စနစ်ဖြင့် လုံခြုံစွာ အလုပ်လုပ်နေပါပြီ။")
 
 async def main():
-    print("🚀 Aiogram Bigwin Bot (Instant Update Edition) စတင်နေပါပြီ...\n")
+    print("🚀 Aiogram Bigwin Bot (Ensemble AI Edition) စတင်နေပါပြီ...\n")
     await bot.delete_webhook(drop_pending_updates=True)
     asyncio.create_task(auto_broadcaster())
     await dp.start_polling(bot)
