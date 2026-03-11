@@ -21,6 +21,7 @@ from sklearn.ensemble import RandomForestClassifier
 import matplotlib
 matplotlib.use('Agg') # Background တွင် ပုံဆွဲရန်
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import warnings
 warnings.filterwarnings("ignore")
 # ------------------------------------------
@@ -74,7 +75,7 @@ async def init_db():
     try:
         await history_collection.create_index("issue_number", unique=True)
         await predictions_collection.create_index("issue_number", unique=True)
-        print("🗄 MongoDB ချိတ်ဆက်မှု အောင်မြင်ပါသည်။ (🎨 Fixed Dots Graph Enabled)")
+        print("🗄 MongoDB ချိတ်ဆက်မှု အောင်မြင်ပါသည်။ (🎨 Fixed Dots Direction)")
     except Exception as e:
         pass
 
@@ -113,13 +114,13 @@ async def login_and_get_token(session: aiohttp.ClientSession):
     return False
 
 # ==========================================
-# 🧠 4. TRUE MACHINE LEARNING ENGINE (DATA ENRICHED)
+# 🧠 4. ADAPTIVE MACHINE LEARNING ENGINE
 # ==========================================
 def train_and_predict_ml(history_docs):
     if len(history_docs) < 30: return None, 0.0
     docs = list(reversed(history_docs)) 
     X, y = [], []
-    window_size = 5 
+    window_size = 6 
     
     def enc_size(s): return 1 if s == 'BIG' else 0
     def enc_par(p): return 1 if p == 'EVEN' else 0
@@ -132,24 +133,24 @@ def train_and_predict_ml(history_docs):
         for doc in window_docs:
             features.extend([
                 enc_size(doc.get('size', 'BIG')), 
-                int(doc.get('number', 0)), 
                 enc_par(doc.get('parity', 'EVEN')), 
+                int(doc.get('number', 0)) % 5, 
                 enc_time(doc.get('time_context', 'MORNING'))
             ])
         X.append(features)
         y.append(enc_size(target_doc.get('size', 'BIG')))
         
-    if len(X) < 10: return None, 0.0
+    if len(X) < 15: return None, 0.0
     
-    clf = RandomForestClassifier(n_estimators=100, max_depth=7, random_state=42)
+    clf = RandomForestClassifier(n_estimators=150, max_depth=8, random_state=42)
     clf.fit(X, y)
     
     latest_features = []
     for doc in docs[-window_size:]:
         latest_features.extend([
             enc_size(doc.get('size', 'BIG')), 
-            int(doc.get('number', 0)), 
             enc_par(doc.get('parity', 'EVEN')), 
+            int(doc.get('number', 0)) % 5,
             enc_time(doc.get('time_context', 'MORNING'))
         ])
         
@@ -162,13 +163,14 @@ def train_and_predict_ml(history_docs):
     return predicted_size, max_prob
 
 # ==========================================
-# 🎨 5. DYNAMIC GRAPH GENERATOR (FIXED DOTS)
+# 🎨 5. DYNAMIC GRAPH GENERATOR 
 # ==========================================
 def generate_winrate_chart(predictions):
     wins, losses = 0, 0
-    history_wr, bar_colors = [], []
-    dots_list = [] 
+    history_wr, bar_colors, dots_list = [], [], []
     
+    # predictions သည် အသစ်မှ အဟောင်းသို့ ဖြစ်သည်။ (Latest -> Oldest)
+    # reversed(predictions) သည် အဟောင်းမှ အသစ်သို့ ဖြစ်သည်။ (Oldest -> Latest)
     for p in reversed(predictions): 
         if 'WIN' in p.get('win_lose', ''):
             wins += 1
@@ -203,34 +205,30 @@ def generate_winrate_chart(predictions):
     ax.spines['bottom'].set_color('#363a45')
     ax.grid(axis='y', color='#363a45', linestyle='-', linewidth=0.5)
     
-    # Text Setup
     plt.suptitle("WINRATE TRACKING", color='white', fontsize=20, fontweight='bold', y=0.96)
     plt.figtext(0.5, 0.05, f"{win_rate}%", color='white', fontsize=30, fontweight='bold', ha='center')
     plt.figtext(0.38, 0.0, f"WINS: {wins}", color='#26a69a', fontsize=14, ha='center', fontweight='bold')
     plt.figtext(0.62, 0.0, f"LOSSES: {losses}", color='#ef5350', fontsize=14, ha='center', fontweight='bold')
     plt.figtext(0.5, -0.05, f"PREDICTION COUNT: {total_played}/20", color='white', fontsize=12, ha='center')
-    plt.figtext(0.5, -0.11, "Recent Predictions (Latest -> Oldest)", color='#787b86', fontsize=10, ha='center')
+    
+    # ပြင်ဆင်ချက်: စာသားကို Oldest -> Latest သို့ ပြောင်းလိုက်သည်
+    plt.figtext(0.5, -0.11, "Recent Predictions (Oldest ➔ Latest)", color='#787b86', fontsize=10, ha='center')
 
-    # --- FIX: PERFECT CIRCLE DOTS ---
     if len(dots_list) > 0:
-        # Scatter ကိုသုံး၍ အလုံးများဆွဲမည် (ပုံမပျက်စေရန်)
         dot_ax = fig.add_axes([0.1, -0.2, 0.8, 0.08]) 
         dot_ax.set_axis_off()
-        dot_ax.set_xlim(0, 20) # အလုံး ၂၀ စာ နေရာယူထားသည်
+        dot_ax.set_xlim(0, 20) 
         dot_ax.set_ylim(0, 1)
         
-        colors = list(reversed(dots_list))
+        # ပြင်ဆင်ချက်: Reversed မလုပ်တော့ဘဲ ဘယ်မှ ညာသို့ (အဟောင်းမှ အသစ်) ပုံမှန်အတိုင်း ပြမည်
+        colors = dots_list
         n_dots = len(colors)
-        
-        # အလယ်တည့်တည့်ကျအောင် နေရာချိန်ညှိခြင်း
         start_x = (20 - n_dots) / 2.0
         x_coords = [start_x + i + 0.5 for i in range(n_dots)]
         y_coords = [0.5] * n_dots
-        
-        # s=250 ဆိုသည်မှာ အလုံးအရွယ်အစားဖြစ်သည်
         dot_ax.scatter(x_coords, y_coords, s=250, c=colors, edgecolors='white', linewidths=1.5, zorder=5)
             
-    plt.figtext(0.5, -0.28, "DEV-PAI", color='#787b86', fontsize=10, ha='center', alpha=0.5)
+    plt.figtext(0.5, -0.28, "DEV-WANG LIN", color='#787b86', fontsize=10, ha='center', alpha=0.5)
 
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight', dpi=100, facecolor='#1e222d')
@@ -279,7 +277,6 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
     
     if is_new_issue:
         LAST_PROCESSED_ISSUE = latest_issue
-        
         if not SESSION_START_ISSUE:
             SESSION_START_ISSUE = latest_issue
         
@@ -299,7 +296,6 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
                 {"$set": {"actual_size": latest_size, "actual_number": latest_number, "win_lose": win_lose_status}}
             )
 
-    # 🔄 AUTO RESET LOGIC (ပွဲ ၂၀ ပြည့်လျှင် Reset)
     current_session_count = await predictions_collection.count_documents({
         "issue_number": {"$gte": SESSION_START_ISSUE}, 
         "win_lose": {"$ne": None}
@@ -310,39 +306,78 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
         
     next_issue = str(int(latest_issue) + 1)
     
-    # 🧠 DATA ENRICHED ML PREDICTION
+    # ==============================================================
+    # 🧠 PREDICTION LOGIC (ADAPTIVE ML & REVERSER)
+    # ==============================================================
     cursor = history_collection.find().sort("issue_number", -1).limit(5000)
     history_docs = await cursor.to_list(length=5000)
     
-    try:
-        ml_pred, ml_prob = await asyncio.to_thread(train_and_predict_ml, history_docs)
-        if ml_pred:
-            predicted = ml_pred
-            base_prob = 65.0 + (ml_prob - 50.0) * 1.5 
-            reason = (
-                f"🤖 <b>AI Machine Learning Engine</b>\n"
-                f"├ 🔢 Number Tracking ({latest_number} ဆက်စပ်မှု)\n"
-                f"├ ⚖️ Parity Matrix ({latest_parity} မ/စုံ)\n"
-                f"└ ⏰ Time Context ({time_context})"
-            )
+    recent_preds_cursor = predictions_collection.find({"win_lose": {"$ne": None}}).sort("issue_number", -1).limit(10)
+    recent_preds = await recent_preds_cursor.to_list(length=10)
+    
+    current_lose_streak = 0
+    for p in recent_preds:
+        if p.get("win_lose") == "LOSE ❌":
+            current_lose_streak += 1
         else:
-            predicted = "BIG" if history_docs[0].get('size') == 'SMALL' else "SMALL"
-            base_prob = 55.0
-            reason = "📊 အခြေခံ ရေစီးကြောင်းအရ တွက်ချက်မှု"
-    except:
-        predicted = "BIG"
-        base_prob = 55.0
-        reason = "⚠️ ML Model Error. Basic Check."
+            break
+
+    predicted = "BIG (အကြီး) 🔴"
+    base_prob = 55.0
+    reason = "Data မလုံလောက်သေးပါ"
+    
+    if len(history_docs) >= 4:
+        last_4_sizes = [doc.get('size') for doc in history_docs[:4]]
+        last_3_sizes = last_4_sizes[:3]
         
+        if len(set(last_3_sizes)) == 1 and current_lose_streak < 3:
+            trend_size = last_3_sizes[0]
+            predicted = "BIG (အကြီး) 🔴" if trend_size == "BIG" else "SMALL (အသေး) 🟢"
+            base_prob = 89.5 
+            reason = f"🔥 <b>Trend Analysis</b>\n└ (အတန်းရှည်နောက် လိုက်မည်)"
+            
+        elif last_4_sizes[0] == last_4_sizes[2] and last_4_sizes[1] == last_4_sizes[3] and last_4_sizes[0] != last_4_sizes[1] and current_lose_streak < 3:
+            expected_size = last_4_sizes[1] 
+            predicted = "BIG (အကြီး) 🔴" if expected_size == "BIG" else "SMALL (အသေး) 🟢"
+            base_prob = 85.0
+            reason = f"🏓 <b>Trend Analysis</b>\n└ (ခုတ်ချိုးနောက် လိုက်မည်)"
+            
+        else:
+            try:
+                ml_pred, ml_prob = await asyncio.to_thread(train_and_predict_ml, history_docs)
+                if ml_pred:
+                    predicted = "BIG (အကြီး) 🔴" if ml_pred == "BIG" else "SMALL (အသေး) 🟢"
+                    base_prob = 65.0 + (ml_prob - 50.0) * 1.5 
+                    reason = (
+                        f"🤖 <b>AI Machine Learning Engine</b>\n"
+                        f"├ 🔢 Number Tracking ({latest_number} ဆက်စပ်မှု)\n"
+                        f"├ ⚖️ Parity Matrix ({latest_parity} မ/စုံ)\n"
+                        f"└ ⏰ Time Context ({time_context})"
+                    )
+                else:
+                    predicted = "BIG (အကြီး) 🔴" if history_docs[0].get('size') == 'SMALL' else "SMALL (အသေး) 🟢"
+                    base_prob = 55.0
+                    reason = "📊 အခြေခံ ရေစီးကြောင်းအရ တွက်ချက်မှု"
+            except Exception as e:
+                predicted = "BIG (အကြီး) 🔴"
+                base_prob = 55.0
+                reason = "⚠️ ML Model Error. Basic Check."
+                
+        if current_lose_streak >= 3:
+            if "BIG" in predicted:
+                predicted = "SMALL (အသေး) 🟢"
+            else:
+                predicted = "BIG (အကြီး) 🔴"
+            base_prob = 92.5
+            reason = f"🚨 <b>Adaptive Reverser Activated</b>\n└ (ကာစီနို၏ Anti-pattern ကြောင့် ပြောင်းပြန်ချိုး၍ တွက်ချက်ထားသည်)"
+    
     final_prob = min(max(round(base_prob, 1), 60.0), 96.0)
-    pred_text = "BIG (အကြီး) 🔴" if predicted == "BIG" else "SMALL (အသေး) 🟢"
 
     LAST_PREDICTED_ISSUE = next_issue
-    LAST_PREDICTED_RESULT = predicted
+    LAST_PREDICTED_RESULT = "BIG" if "BIG" in predicted else "SMALL"
     
     await predictions_collection.update_one({"issue_number": next_issue}, {"$setOnInsert": {"predicted_size": LAST_PREDICTED_RESULT}}, upsert=True)
 
-    # 📊 Data ဆွဲထုတ်ခြင်း (လက်ရှိ Session သာ)
     pred_cursor = predictions_collection.find({
         "issue_number": {"$gte": SESSION_START_ISSUE},
         "win_lose": {"$ne": None}
@@ -350,7 +385,6 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
     
     session_preds = await pred_cursor.to_list(length=20) 
     
-    # 🎨 ဇယား ဖန်တီးခြင်း
     table_str = "<code>Period    | Result  | W/L\n"
     table_str += "----------|---------|----\n"
     for p in session_preds[:10]: 
@@ -363,22 +397,19 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
         table_str += f"{iss_short:<10}| {res_str:<7} | {wl_str}\n"
     table_str += "</code>"
 
-    # --- အချိန်မှတ်စက် ---
     seconds_left = 30 - (int(time.time()) % 30)
     
-    # 🎯 Telegram Caption ဖန်တီးခြင်း
     tg_caption = (
         f"<b>WIN GO 30 SECONDS</b>\n"
         f"⏰ Next Result In: <b>{seconds_left}s</b>\n\n"
         f"{table_str}\n"
         f"🅿️ <b>Period:</b> {next_issue[:3]}**{next_issue[-4:]}\n"
-        f"🎯 <b>Predict: {pred_text}</b>\n"
+        f"🎯 <b>Predict: {predicted}</b>\n"
         f"📈 <b>ဖြစ်နိုင်ခြေ:</b> {final_prob}%\n"
         f"💡 <b>အကြောင်းပြချက်:</b>\n"
         f"{reason}"
     )
     
-    # 🔄 ပုံနှင့်စာကို အလိုအလျောက် Update လုပ်ခြင်း
     try:
         if is_new_issue or not MAIN_MESSAGE_ID:
             img_buf = await asyncio.to_thread(generate_winrate_chart, session_preds)
@@ -410,10 +441,10 @@ async def auto_broadcaster():
 
 @dp.message(Command("start"))
 async def send_welcome(message: types.Message):
-    await message.reply("👋 မင်္ဂလာပါ။ စနစ်က Channel ထဲတွင် Winrate Graph နှင့် Auto Reset စနစ်ကို အလုပ်လုပ်ပေးနေပါမည်။")
+    await message.reply("👋 မင်္ဂလာပါ။ စနစ်က Winrate Graph အား မှန်ကန်စွာ ဆွဲသားပေးနေပါပြီ။")
 
 async def main():
-    print("🚀 Aiogram Bigwin Bot (Data Enriched ML + Auto Reset Graph Edition) စတင်နေပါပြီ...\n")
+    print("🚀 Aiogram Bigwin Bot (Fixed Dots Direction) စတင်နေပါပြီ...\n")
     await bot.delete_webhook(drop_pending_updates=True)
     asyncio.create_task(auto_broadcaster())
     await dp.start_polling(bot)
