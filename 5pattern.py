@@ -414,20 +414,20 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
 
     # ⚡ Zero-Latency Function
     def get_realtime_caption():
-        sec_left = 30 - (int(time.time()) % 30)
-        if sec_left == 30: sec_left = 0
+        sec_left = 60 - (int(time.time()) % 60)
+        if sec_left == 60: sec_left = 0
         return (
-            f"<b>💎 TRX WIN GO (30s)</b>\n"
-            f"💰 <b>Balance:</b> {CURRENT_BALANCE} 🪙\n"
+            f"<b>💎 TRX WIN GO (60s)</b>\n"
+           # f"💰 <b>Balance:</b> {CURRENT_BALANCE} 🪙\n"
             f"⏰ Next Result In: <b>{sec_left}s</b>\n\n"
             f"{table_str}\n"
             f"🅿️ <b>Period:</b> {next_issue[:3]}**{next_issue[-4:]}\n"
             f"🎯 <b>Predict: {predicted}</b>\n"
             f"📈 <b>ဖြစ်နိုင်ခြေ:</b> {final_prob}%\n"
-            f"💡 <b>အကြောင်းပြချက်:</b>\n"
-            f"{reason}\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
-            f"{bet_advice}"
+            #f"💡 <b>အကြောင်းပြချက်:</b>\n"
+            #f"{reason}\n"
+            #f"━━━━━━━━━━━━━━━━━━\n"
+            #f"{bet_advice}"
         )
     
     current_time = time.time()
