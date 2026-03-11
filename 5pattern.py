@@ -75,7 +75,7 @@ async def init_db():
     try:
         await history_collection.create_index("issue_number", unique=True)
         await predictions_collection.create_index("issue_number", unique=True)
-        print("🗄 MongoDB ချိတ်ဆက်မှု အောင်မြင်ပါသည်။ (🎨 Fixed Dots Direction)")
+        print("🗄 MongoDB ချိတ်ဆက်မှု အောင်မြင်ပါသည်။ (🚀 Telegram Cache Fix Enabled)")
     except Exception as e:
         pass
 
@@ -169,8 +169,6 @@ def generate_winrate_chart(predictions):
     wins, losses = 0, 0
     history_wr, bar_colors, dots_list = [], [], []
     
-    # predictions သည် အသစ်မှ အဟောင်းသို့ ဖြစ်သည်။ (Latest -> Oldest)
-    # reversed(predictions) သည် အဟောင်းမှ အသစ်သို့ ဖြစ်သည်။ (Oldest -> Latest)
     for p in reversed(predictions): 
         if 'WIN' in p.get('win_lose', ''):
             wins += 1
@@ -210,8 +208,6 @@ def generate_winrate_chart(predictions):
     plt.figtext(0.38, 0.0, f"WINS: {wins}", color='#26a69a', fontsize=14, ha='center', fontweight='bold')
     plt.figtext(0.62, 0.0, f"LOSSES: {losses}", color='#ef5350', fontsize=14, ha='center', fontweight='bold')
     plt.figtext(0.5, -0.05, f"PREDICTION COUNT: {total_played}/20", color='white', fontsize=12, ha='center')
-    
-    # ပြင်ဆင်ချက်: စာသားကို Oldest -> Latest သို့ ပြောင်းလိုက်သည်
     plt.figtext(0.5, -0.11, "Recent Predictions (Oldest ➔ Latest)", color='#787b86', fontsize=10, ha='center')
 
     if len(dots_list) > 0:
@@ -219,8 +215,6 @@ def generate_winrate_chart(predictions):
         dot_ax.set_axis_off()
         dot_ax.set_xlim(0, 20) 
         dot_ax.set_ylim(0, 1)
-        
-        # ပြင်ဆင်ချက်: Reversed မလုပ်တော့ဘဲ ဘယ်မှ ညာသို့ (အဟောင်းမှ အသစ်) ပုံမှန်အတိုင်း ပြမည်
         colors = dots_list
         n_dots = len(colors)
         start_x = (20 - n_dots) / 2.0
@@ -307,7 +301,7 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
     next_issue = str(int(latest_issue) + 1)
     
     # ==============================================================
-    # 🧠 PREDICTION LOGIC (ADAPTIVE ML & REVERSER)
+    # 🧠 PREDICTION LOGIC
     # ==============================================================
     cursor = history_collection.find().sort("issue_number", -1).limit(5000)
     history_docs = await cursor.to_list(length=5000)
@@ -410,10 +404,14 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
         f"{reason}"
     )
     
+    # 🔄 ပုံနှင့်စာကို အလိုအလျောက် Update လုပ်ခြင်း (Telegram Cache ရှင်းလင်းသည့်စနစ်)
     try:
         if is_new_issue or not MAIN_MESSAGE_ID:
             img_buf = await asyncio.to_thread(generate_winrate_chart, session_preds)
-            photo = BufferedInputFile(img_buf.read(), filename="chart.png")
+            
+            # 💡 Telegram ၏ Image Cache ပြဿနာကို ဖြေရှင်းရန် ဖိုင်နာမည်ကို Dynamic ပြောင်းလဲပေးခြင်း
+            unique_filename = f"winrate_chart_{int(time.time())}.png"
+            photo = BufferedInputFile(img_buf.read(), filename=unique_filename)
             
             if MAIN_MESSAGE_ID:
                 media = InputMediaPhoto(media=photo, caption=tg_caption, parse_mode="HTML")
@@ -441,10 +439,10 @@ async def auto_broadcaster():
 
 @dp.message(Command("start"))
 async def send_welcome(message: types.Message):
-    await message.reply("👋 မင်္ဂလာပါ။ စနစ်က Winrate Graph အား မှန်ကန်စွာ ဆွဲသားပေးနေပါပြီ။")
+    await message.reply("👋 မင်္ဂလာပါ။ စနစ်က Winrate Graph မှားယွင်းမှုများကို အလိုအလျောက် ဖြေရှင်းပေးနေပါပြီ။")
 
 async def main():
-    print("🚀 Aiogram Bigwin Bot (Fixed Dots Direction) စတင်နေပါပြီ...\n")
+    print("🚀 Aiogram Bigwin Bot (Telegram Cache Fix Edition) စတင်နေပါပြီ...\n")
     await bot.delete_webhook(drop_pending_updates=True)
     asyncio.create_task(auto_broadcaster())
     await dp.start_polling(bot)
