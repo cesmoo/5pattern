@@ -19,7 +19,7 @@ from aiogram.types import BufferedInputFile, InputMediaPhoto
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 import matplotlib
-matplotlib.use('Agg') # Background တွင် ပုံဆွဲရန်
+matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import warnings
@@ -73,7 +73,7 @@ async def init_db():
     try:
         await history_collection.create_index("issue_number", unique=True)
         await predictions_collection.create_index("issue_number", unique=True)
-        print("🗄 MongoDB ချိတ်ဆက်မှု အောင်မြင်ပါသည်။ (💎 TRX 1-MIN PRO Edition)")
+        print("🗄 MongoDB ချိတ်ဆက်မှု အောင်မြင်ပါသည်။ (💎 TRX PRO Full API Edition)")
     except Exception as e:
         print(f"❌ MongoDB Error: {e}")
 
@@ -94,16 +94,16 @@ async def fetch_with_retry(session, url, headers, json_data, retries=3):
 async def login_and_get_token(session: aiohttp.ClientSession):
     global CURRENT_TOKEN
     json_data = {
-        'username': '959770069402',
+        'username': '959770069402', 
         'pwd': 'Mitheint11',
         'phonetype': 1,
         'logintype': 'mobile',
         'packId': '',
         'deviceId': '51ed4ee0f338a1bb24063ffdfcd31ce6',
         'language': 7,
-        'random': 'a4902febdaeb4f5885479c44a8ac2cbb',
-        'signature': '2127DA46CCAE9050B844F8E3373CFDFB',
-        'timestamp': 1773211093,
+        'random': '452fa309995244de92103c0afbefbe9a',
+        'signature': '202C655177E9187D427A26F3CDC00A52',
+        'timestamp': int(time.time()),
     }
     data = await fetch_with_retry(session, 'https://api.bigwinqaz.com/api/webapi/Login', BASE_HEADERS, json_data)
     if data and data.get('code') == 0:
@@ -136,8 +136,8 @@ async def get_current_issue(session: aiohttp.ClientSession, headers):
     json_data = {
         'typeId': 13,
         'language': 7,
-        'random': '3d704ba98ce14bf2a8c1153c27e234e0',
-        'signature': 'DEB5F9E0B146BFE09C316AD1417A97A8',
+        'random': '11f6da0c8e434ccaac2ca399e5a333cf',
+        'signature': 'A8708EAABC8CADB207176021778459B4',
         'timestamp': int(time.time()),
     }
     res = await fetch_with_retry(session, url, headers, json_data)
@@ -294,11 +294,9 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
     headers = BASE_HEADERS.copy()
     headers['authorization'] = CURRENT_TOKEN
 
-    json_data = {
-        'pageSize': 10,
-        'pageNo': 1,
-        'typeId': 13,
-        'language': 7,
+    # ❗ ပြဿနာဖြစ်ခဲ့သော json_data_list ကို ဤနေရာတွင် သေချာစွာ ထည့်သွင်းပေးထားပါသည်
+    json_data_list = {
+        'pageSize': 10, 'pageNo': 1, 'typeId': 13, 'language': 7,
         'random': '6f1cfc8bbeeb44ec98343ac38d1af67c',
         'signature': '5E271BE324AFB34F9A2E5EC9F7CE05D2',
         'timestamp': int(time.time()),
@@ -423,7 +421,6 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
     table_str += "</code>"
 
     def get_realtime_caption():
-        # 💡 [FIX] ၁ မိနစ် (60 seconds) timer သို့ ပြောင်းထားသည်
         sec_left = 60 - (int(time.time()) % 60)
         if sec_left == 60: sec_left = 0
         return (
