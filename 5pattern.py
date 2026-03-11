@@ -91,7 +91,7 @@ async def fetch_with_retry(session, url, headers, json_data, retries=3):
 async def login_and_get_token(session: aiohttp.ClientSession):
     global CURRENT_TOKEN
     json_data = {
-        'username': NAME, 'pwd': PASSWORD, 'phonetype': 1, 'logintype': 'mobile',
+        'username': 'NAME', 'pwd': 'PASSWORD', 'phonetype': 1, 'logintype': 'mobile',
         'packId': '', 'deviceId': '51ed4ee0f338a1bb24063ffdfcd31ce6', 'language': 7,
         'random': 'e9a8246ddf1e4514955ada53ef50bdc0', 'signature': '872204F85DDA09B5E7BFAFD9FECC402E',
         'timestamp': 1772984986,
