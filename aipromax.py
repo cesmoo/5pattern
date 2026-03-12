@@ -335,9 +335,9 @@ async def check_game_and_predict(session: aiohttp.ClientSession):
 
     json_data = {
         'pageSize': 10, 'pageNo': 1, 'typeId': 30, 'language': 7,
-        'random': '9ef85244056948ba8dcae7aee7758bf4', # ကိုယ်တိုင်လာလဲပေးရန်
-        'signature': '2EDB8C2B5264F62EC53116916A9EC05C',
-        'timestamp': 1773326133,
+        'random': 'e7edd78075f142cb8778399f8eee7c85', # ကိုယ်တိုင်လာလဲပေးရန်
+        'signature': 'FFC37E3CCF68C016A864124AA318E643',
+        'timestamp': 1773340048,
     }
 
     data = await fetch_with_retry(session, 'https://api.bigwinqaz.com/api/webapi/GetNoaverageEmerdList', headers, json_data)
